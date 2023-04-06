@@ -1,0 +1,4 @@
+Flask_SocketIO==5.3.3
+Flask>=2.2.2
+Flask-Session==0.3.2
+eventlet
