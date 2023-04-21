@@ -25,3 +25,10 @@ Execute the application by
 ## Design
 
 | Login Screen![enter image description here](./designs/Screenshot%20from%202023-04-06%2015-52-35.png) | Chat Window![enter image description here](./designs/Screenshot%20from%202023-04-06%2015-52-42.png)
+
+`export FLASK_APP=app
+flask shell
+
+from app import db, ChatMessage
+db.create_all()
+`

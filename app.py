@@ -2,28 +2,28 @@ from flask import Flask, render_template, request, redirect, url_for, session
 from flask_socketio import SocketIO, join_room, leave_room, emit
 from flask_session import Session
 from flask_sqlalchemy import SQLAlchemy
-from datetime import datetime
+
 
 app = Flask(__name__)
 app.debug = True
 app.config['SECRET_KEY'] = 'secret'
 app.config['SESSION_TYPE'] = 'filesystem'
 app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///chat.db'
-app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 db = SQLAlchemy(app)
-
 
 class ChatMessage(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     username = db.Column(db.String(50))
-    message = db.Column(db.Text)
-    timestamp = db.Column(db.DateTime, default=datetime.utcnow)
+    room = db.Column(db.String(50))
+    message = db.Column(db.String(200))
 
-    def __repr__(self):
-        return '<ChatMessage {}>'.format(self.id)
+    def __init__(self, username, room, message):
+        self.username = username
+        self.room = room
+        self.message = message
 
-Session(app)
 
+db.create_all()
 socketio = SocketIO(app, manage_session=False)
 
 
@@ -33,18 +33,16 @@ def index():
 
 @app.route('/chat', methods=['GET', 'POST'])
 def chat():
-    if(request.method=='POST'):
+    if request.method == 'POST':
         username = request.form['username']
         room = request.form['room']
-        #Store the data in session
         session['username'] = username
         session['room'] = room
-        return render_template('chat.html', session = session)
+        return redirect(url_for('chat') + f'?username={username}')
+    elif session.get('username') is not None:
+        return render_template('chat.html', session=session, username=session['username'])
     else:
-        if(session.get('username') is not None):
-            return render_template('chat.html', session = session)
-        else:
-            return redirect(url_for('index'))
+        return redirect(url_for('index'))
 
 @socketio.on('join', namespace='/chat')
 def join(message):
@@ -56,8 +54,11 @@ def join(message):
 @socketio.on('text', namespace='/chat')
 def text(message):
     room = session.get('room')
-    print(session.get('username'),"--------")
-    emit('message', {'msg': session.get('username') + ' : ' + message['msg']}, room=room)
+    username = session.get('username')
+    chat_message = ChatMessage(username, room, message['msg'])
+    db.session.add(chat_message)
+    db.session.commit()
+    emit('message', {'msg': message['msg'],"author":session.get('username')}, room=room)
 
 
 @socketio.on('left', namespace='/chat')
