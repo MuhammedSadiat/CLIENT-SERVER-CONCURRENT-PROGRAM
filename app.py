@@ -48,7 +48,7 @@ def chat():
 def join(message):
     room = session.get('room')
     join_room(room)
-    emit('status', {'msg':  session.get('username') + ' has entered the room.'}, room=room)
+    emit('status', {'msg':  session.get('username') + ' has entered the room.',"author":session.get('username')}, room=room)
 
 
 @socketio.on('text', namespace='/chat')
